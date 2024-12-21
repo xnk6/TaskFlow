@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدير المهام المتقدم</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #4a4a4a;
+        }
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filters input, .filters select, .filters button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        .filters button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+        .filters button:hover {
+            background-color: #218838;
+        }
+        .categories {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .categories button {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        .categories button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .stat {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stat h3 {
+            margin: 0;
+            font-size: 24px;
+            color: #4a4a4a;
+        }
+        .stat p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        .actions button {
+            margin-left: 5px;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+        }
+        .actions .complete-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .actions .complete-btn:hover {
+            background-color: #0056b3;
+        }
+        .actions .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .actions .delete-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>مدير المهام المتقدم</h1>
+        <div class="filters">
+            <input type="text" id="taskSearch" placeholder="ابحث عن المهام...">
+            <input type="text" id="taskInput" placeholder="ما الذي تحتاج إلى إنجازه؟">
+            <select id="taskCategory">
+                <option value="">اختر الفئة</option>
+                <option value="Work">العمل</option>
+                <option value="Personal">شخصي</option>
+                <option value="Shopping">التسوق</option>
+                <option value="Health">الصحة</option>
+            </select>
+            <select id="taskPriority">
+                <option value="">اختر الأولوية</option>
+                <option value="High">عالية</option>
+                <option value="Medium">متوسطة</option>
+                <option value="Low">منخفضة</option>
+            </select>
+            <button onclick="addTask()">إضافة مهمة</button>
+        </div>
+        <div class="categories">
+            <button class="active" onclick="filterCategory('All')">الكل</button>
+            <button onclick="filterCategory('Work')">العمل</button>
+            <button onclick="filterCategory('Personal')">شخصي</button>
+            <button onclick="filterCategory('Shopping')">التسوق</button>
+            <button onclick="filterCategory('Health')">الصحة</button>
+        </div>
+        <div class="stats">
+            <div class="stat">
+                <h3 id="totalTasks">0</h3>
+                <p>إجمالي المهام</p>
+            </div>
+            <div class="stat">
+                <h3 id="completedTasks">0</h3>
+                <p>المهام المكتملة</p>
+            </div>
+            <div class="stat">
+                <h3 id="dueSoonTasks">0</h3>
+                <p>المهام القريبة من الاستحقاق</p>
+            </div>
+            <div class="stat">
+                <h3 id="completionRate">0%</h3>
+                <p>نسبة الإكمال</p>
+            </div>
+        </div>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const taskText = taskInput.value.trim();
+            const taskCategory = document.getElementById('taskCategory').value;
+            const taskPriority = document.getElementById('taskPriority').value;
+
+            if (taskText === '') {
+                alert('يرجى إدخال مهمة!');
+                return;
+            }
+
+            const taskList = document.getElementById('taskList');
+            const li = document.createElement('li');
+
+            const taskSpan = document.createElement('span');
+            taskSpan.textContent = `${taskText} (${taskCategory || 'بدون فئة'}, ${taskPriority || 'بدون أولوية'})`;
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'actions';
+
+            const completeButton = document.createElement('button');
+            completeButton.className = 'complete-btn';
+            completeButton.textContent = 'إكمال';
+            completeButton.onclick = function () {
+                completeTask(completeButton);
+            };
+
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-btn';
+            deleteButton.textContent = 'حذف';
+            deleteButton.onclick = function () {
+                deleteTask(deleteButton);
+            };
+
+            actionsDiv.appendChild(completeButton);
+            actionsDiv.appendChild(deleteButton);
+
+            li.appendChild(taskSpan);
+            li.appendChild(actionsDiv);
+
+            taskList.appendChild(li);
+            taskInput.value = '';
+            updateStats();
+        }
+
+        function completeTask(button) {
+            const taskItem = button.parentElement.parentElement;
+            const taskText = taskItem.querySelector('span');
+            taskText.classList.toggle('completed');
+
+            button.textContent = button.textContent === 'إكمال' ? 'تراجع' : 'إكمال';
+            updateStats();
+        }
+
+        function deleteTask(button) {
+            const taskItem = button.parentElement.parentElement;
+            if (confirm('هل أنت متأكد أنك تريد حذف هذه المهمة؟')) {
+                taskItem.remove();
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            const totalTasks = document.querySelectorAll('#taskList li').length;
+            const completedTasks = document.querySelectorAll('#taskList .completed').length;
+            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            document.getElementById('totalTasks').textContent = totalTasks;
+            document.getElementById('completedTasks').textContent = completedTasks;
+            document.getElementById('completionRate').textContent = `${completionRate}%`;
+        }
+
+        function filterCategory(category) {
+            const allTasks = document.querySelectorAll('#taskList li');
+            allTasks.forEach(task => {
+                if (category === 'All' || task.textContent.includes(category)) {
+                    task.style.display = '';
+                } else {
+                    task.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f9;
+    }
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+    }
+    h1 {
+        text-align: center;
+        color: #4a4a4a;
+    }
+    .filters {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .filters input, .filters select, .filters button {
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        flex: 1;
+    }
+    .filters button {
+        background-color: #28a745;
+        color: white;
+        cursor: pointer;
+    }
+    .filters button:hover {
+        background-color: #218838;
+    }
+    .categories {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .categories button {
+        padding: 10px 15px;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    .categories button.active {
+        background-color: #007bff;
+        color: white;
+    }
+    .stats {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        text-align: center;
+        flex-wrap: wrap;
+    }
+    .stat {
+        flex: 1;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin: 5px 0;
+    }
+    .stat h3 {
+        margin: 0;
+        font-size: 24px;
+        color: #4a4a4a;
+    }
+    .stat p {
+        margin: 5px 0 0;
+        font-size: 14px;
+        color: #6c757d;
+    }
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+    li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    .completed {
+        text-decoration: line-through;
+        color: #6c757d;
+    }
+    .actions button {
+        margin-left: 5px;
+        padding: 5px 10px;
+        font-size: 14px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+    }
+    .actions .complete-btn {
+        background-color: #007bff;
+        color: white;
+    }
+    .actions .complete-btn:hover {
+        background-color: #0056b3;
+    }
+    .actions .delete-btn {
+        background-color: #dc3545;
+        color: white;
+    }
+    .actions .delete-btn:hover {
+        background-color: #c82333;
+    }
+    /* إضافات لتصميم متجاوب */
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px;
+        }
+        .filters input, .filters select, .filters button {
+            font-size: 14px;
+        }
+        .categories button {
+            font-size: 12px;
+        }
+        .stat h3 {
+            font-size: 20px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .filters {
+            flex-direction: column;
+        }
+        .categories {
+            flex-direction: column;
+        }
+        .categories button {
+            width: 100%;
+        }
+        .stats {
+            flex-direction: column;
+        }
+        .stat {
+            margin-bottom: 10px;
+        }
+    }
+</style>
